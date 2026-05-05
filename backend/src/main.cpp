@@ -3,11 +3,13 @@
 #include <nlohmann/json.hpp>
 #include "models.hpp"
 #include "csv_parser.hpp"
+#include "conflict_graph.hpp"
 
 using json = nlohmann::json;
 
-// Global data store for Phase 2
+// Global data store for Phase 2 & 3
 models::SchedulingData global_data;
+scheduling::ConflictGraph global_graph;
 
 int main() {
     crow::SimpleApp app;
@@ -29,9 +31,6 @@ int main() {
         crow::response res;
         res.add_header("Access-Control-Allow-Origin", "*");
         
-        auto courses_csv = req.url_params.get("courses_csv"); // we can receive strings in body or via multipart, let's assume JSON body for simplicity. Wait, standard file upload is multipart/form-data.
-
-        // We will parse JSON body for now, assuming frontend converts CSV to string or sends raw strings.
         auto req_body = json::parse(req.body, nullptr, false);
         if (req_body.is_discarded()) {
             res.code = 400;
@@ -49,10 +48,14 @@ int main() {
             csv_parser::parse_enrollments(req_body["enrollments_csv"].get<std::string>(), global_data);
         }
 
+        // Phase 3: Build Conflict Graph
+        global_graph.build_graph(global_data);
+
         json response_data;
         response_data["status"] = "success";
         response_data["parsed_courses_count"] = global_data.courses.size();
         response_data["parsed_students_count"] = global_data.students.size();
+        response_data["conflict_graph_nodes"] = global_graph.get_adjacency_list().size();
         
         res.body = response_data.dump();
         res.add_header("Content-Type", "application/json");

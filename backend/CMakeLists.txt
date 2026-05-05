@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Crow REQUIRED)
 find_package(nlohmann_json REQUIRED)
 
-add_executable(scheduler src/main.cpp src/csv_parser.cpp)
+add_executable(scheduler src/main.cpp src/csv_parser.cpp src/conflict_graph.cpp)
 
 target_include_directories(scheduler PRIVATE include)
 
