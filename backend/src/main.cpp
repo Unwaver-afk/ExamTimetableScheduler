@@ -1,5 +1,6 @@
 #define CROW_ENABLE_DEBUG
 #include "crow.h"
+#include "crow/middlewares/cors.h"
 #include <nlohmann/json.hpp>
 #include "models.hpp"
 #include "csv_parser.hpp"
@@ -13,13 +14,19 @@ models::SchedulingData global_data;
 scheduling::ConflictGraph global_graph;
 
 int main() {
-    crow::SimpleApp app;
+    crow::App<crow::CORSHandler> app;
+    auto& cors = app.get_middleware<crow::CORSHandler>();
+    cors.global()
+        .origin("*")
+        .methods(crow::HTTPMethod::GET, crow::HTTPMethod::POST, crow::HTTPMethod::OPTIONS)
+        .headers("Content-Type", "Authorization")
+        .max_age(3600);
 
     CROW_ROUTE(app, "/api/ping")
     ([](){
         json response = {
             {"status", "success"},
-            {"message", "Exam Timetable Scheduler Backend is running!"}
+            {"message", "Timely course scheduler backend is running!"}
         };
         crow::response res(response.dump());
         res.add_header("Content-Type", "application/json");
@@ -27,19 +34,30 @@ int main() {
         return res;
     });
 
-    CROW_ROUTE(app, "/api/upload").methods(crow::HTTPMethod::POST)
+    CROW_ROUTE(app, "/api/upload").methods(crow::HTTPMethod::POST, crow::HTTPMethod::OPTIONS)
     ([](const crow::request& req){
         crow::response res;
         res.add_header("Access-Control-Allow-Origin", "*");
+        res.add_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+        res.add_header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        res.add_header("Access-Control-Max-Age", "3600");
+
+        if (req.method == crow::HTTPMethod::OPTIONS) {
+            CROW_LOG_INFO << ">>> CORS PREFLIGHT (OPTIONS) HANDLED <<<";
+            res.code = 200;
+            return res;
+        }
         
+        CROW_LOG_INFO << ">>> RECEIVED DATA (POST) AT /api/upload <<<";
         auto req_body = json::parse(req.body, nullptr, false);
         if (req_body.is_discarded()) {
+            CROW_LOG_ERROR << "!!! INVALID JSON PAYLOAD !!!";
             res.code = 400;
             res.body = R"({"error": "Invalid JSON payload"})";
             return res;
         }
 
-        global_data = models::SchedulingData(); // reset data
+        global_data = models::SchedulingData(); 
         
         if (req_body.contains("courses_csv") && req_body["courses_csv"].is_string()) {
             csv_parser::parse_courses(req_body["courses_csv"].get<std::string>(), global_data);
@@ -49,7 +67,6 @@ int main() {
             csv_parser::parse_enrollments(req_body["enrollments_csv"].get<std::string>(), global_data);
         }
 
-        // Phase 3: Build Conflict Graph
         global_graph.build_graph(global_data);
 
         json response_data;
@@ -63,11 +80,20 @@ int main() {
         return res;
     });
 
-    CROW_ROUTE(app, "/api/schedule").methods(crow::HTTPMethod::POST)
+    CROW_ROUTE(app, "/api/schedule").methods(crow::HTTPMethod::POST, crow::HTTPMethod::OPTIONS)
     ([](const crow::request& req){
         crow::response res;
         res.add_header("Access-Control-Allow-Origin", "*");
+        res.add_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+        res.add_header("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
+        if (req.method == crow::HTTPMethod::OPTIONS) {
+            CROW_LOG_INFO << ">>> CORS PREFLIGHT (OPTIONS) HANDLED <<<";
+            res.code = 200;
+            return res;
+        }
+
+        CROW_LOG_INFO << ">>> RECEIVED REQUEST (POST) AT /api/schedule <<<";
         auto req_body = json::parse(req.body, nullptr, false);
         std::string algo = "greedy";
         int max_slots = 10;
@@ -87,9 +113,8 @@ int main() {
 
         if (algo == "backtracking") {
             success = scheduling::TimetableScheduler::schedule_backtracking_m_coloring(global_data, global_graph, max_slots);
-            if (success) used_slots = max_slots; // Approximation, we just know it fit in max_slots
+            if (success) used_slots = max_slots; 
         } else {
-            // Default to greedy Welsh-Powell
             used_slots = scheduling::TimetableScheduler::schedule_greedy_welsh_powell(global_data, global_graph);
         }
 
@@ -106,7 +131,6 @@ int main() {
             response_data["execution_time_ms"] = duration;
             response_data["algorithm_used"] = algo;
             
-            // Build scheduled list
             json assignments = json::array();
             json nodes = json::array();
             for (const auto& pair : global_data.courses) {
@@ -126,12 +150,10 @@ int main() {
             response_data["assignments"] = assignments;
             response_data["nodes"] = nodes;
 
-            // Build edges for D3
             json links = json::array();
             auto adj_list = global_graph.get_adjacency_list();
             for (const auto& pair : adj_list) {
                 for (const auto& neighbor : pair.second) {
-                    // to avoid duplicate undirected edges, only add if source < target
                     if (pair.first < neighbor) {
                         links.push_back({
                             {"source", pair.first},

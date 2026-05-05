@@ -1,6 +1,6 @@
-CS101,Intro to Programming
+CourseID,CourseName
+CS101,Programming Fundamentals
 CS102,Data Structures
-CS201,Algorithms
-MATH101,Calculus I
-MATH102,Calculus II
-PHYS101,Physics I
+CS201,Design and Analysis of Algorithms
+MATH201,Linear Algebra
+HUM110,Technical Communication
