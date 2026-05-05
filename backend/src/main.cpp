@@ -108,6 +108,7 @@ int main() {
             
             // Build scheduled list
             json assignments = json::array();
+            json nodes = json::array();
             for (const auto& pair : global_data.courses) {
                 assignments.push_back({
                     {"course_id", pair.second.id},
@@ -115,8 +116,31 @@ int main() {
                     {"slot", pair.second.assigned_slot},
                     {"enrollment", pair.second.enrollment_count}
                 });
+                nodes.push_back({
+                    {"id", pair.second.id},
+                    {"group", pair.second.assigned_slot},
+                    {"name", pair.second.name},
+                    {"enrollment", pair.second.enrollment_count}
+                });
             }
             response_data["assignments"] = assignments;
+            response_data["nodes"] = nodes;
+
+            // Build edges for D3
+            json links = json::array();
+            auto adj_list = global_graph.get_adjacency_list();
+            for (const auto& pair : adj_list) {
+                for (const auto& neighbor : pair.second) {
+                    // to avoid duplicate undirected edges, only add if source < target
+                    if (pair.first < neighbor) {
+                        links.push_back({
+                            {"source", pair.first},
+                            {"target", neighbor}
+                        });
+                    }
+                }
+            }
+            response_data["links"] = links;
         }
 
         res.body = response_data.dump();
