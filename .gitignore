@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# IDEs
+.idea/
+.vscode/
+
+# Backend
+backend/build/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
