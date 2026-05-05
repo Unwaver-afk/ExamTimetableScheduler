@@ -6,6 +6,7 @@
 #include "csv_parser.hpp"
 #include "conflict_graph.hpp"
 #include "scheduler.hpp"
+#include "room_allocator.hpp"
 
 using json = nlohmann::json;
 
@@ -112,11 +113,19 @@ int main() {
         bool success = true;
 
         if (algo == "backtracking") {
-            success = scheduling::TimetableScheduler::schedule_backtracking_m_coloring(global_data, global_graph, max_slots);
-            if (success) used_slots = max_slots; 
+            success = scheduling::TimetableScheduler::schedule_backtracking_m_coloring(global_data, global_graph, max_slots, used_slots);
         } else {
             used_slots = scheduling::TimetableScheduler::schedule_greedy_welsh_powell(global_data, global_graph);
         }
+
+        if (global_data.rooms.empty()) {
+            global_data.rooms = {
+                {"LT-1", 150}, {"LT-2", 150}, {"LT-3", 150},
+                {"G1", 80}, {"G2", 80}, {"G3", 80},
+                {"FF1", 60}, {"FF2", 60}, {"FF3", 60}
+            };
+        }
+        scheduling::RoomAllocator::allocate_rooms_greedy(global_data);
 
         auto end_time = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
@@ -138,7 +147,8 @@ int main() {
                     {"course_id", pair.second.id},
                     {"course_name", pair.second.name},
                     {"slot", pair.second.assigned_slot},
-                    {"enrollment", pair.second.enrollment_count}
+                    {"enrollment", pair.second.enrollment_count},
+                    {"room", pair.second.assigned_room.empty() ? "TBA" : pair.second.assigned_room}
                 });
                 nodes.push_back({
                     {"id", pair.second.id},

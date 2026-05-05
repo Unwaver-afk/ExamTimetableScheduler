@@ -28,9 +28,10 @@ namespace scheduling {
          * Attempts to assign colors 0 to max_slots-1. If a valid assignment is found, 
          * the courses are updated with their assigned slots.
          * 
+         * @param used_slots Output parameter set to the actual number of colors used by the successful assignment.
          * @return true if successful, false if it cannot be scheduled within max_slots.
          */
-        static bool schedule_backtracking_m_coloring(models::SchedulingData& data, const ConflictGraph& graph, int max_slots);
+        static bool schedule_backtracking_m_coloring(models::SchedulingData& data, const ConflictGraph& graph, int max_slots, int& used_slots);
 
     private:
         static bool backtracking_helper(
@@ -38,7 +39,9 @@ namespace scheduling {
             int current_idx,
             std::unordered_map<std::string, int>& color_assignment,
             int max_slots,
-            const ConflictGraph& graph
+            const ConflictGraph& graph,
+            int current_max_color,
+            int& used_slots
         );
 
         static bool is_safe(

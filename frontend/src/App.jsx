@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
-import { UploadCloud, CheckCircle2, BarChart2, Calendar, LayoutGrid, Loader2, Clock3, Network, Users2 } from 'lucide-react'
+import { UploadCloud, CheckCircle2, BarChart2, Calendar, LayoutGrid, Loader2, Clock3, Network, Users2, MapPin } from 'lucide-react'
 import './index.css'
 
 const SLOT_COLORS = ['#2563eb', '#dc2626', '#059669', '#d97706', '#7c3aed', '#0891b2', '#be123c', '#4f46e5']
@@ -370,12 +370,17 @@ function App() {
                                                 {group.courses.map((course) => (
                                                     <div key={course.course_id} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 hover:bg-white hover:shadow-md transition-all">
                                                         <div className="flex items-start justify-between gap-3">
-                                                            <div className="min-w-0">
+                                                            <div className="min-w-0 flex-1">
                                                                 <div className="font-black text-slate-900 text-lg leading-tight">{course.course_id}</div>
                                                                 <div className="text-sm text-slate-500 font-medium mt-1 break-words">{course.course_name}</div>
+                                                                <div className="text-xs text-indigo-600 font-bold mt-2.5 flex items-center gap-1.5 bg-indigo-50/80 w-fit px-2.5 py-1 rounded-lg border border-indigo-100/50">
+                                                                    <MapPin size={14} className="text-indigo-500" /> {course.room || 'TBA'}
+                                                                </div>
                                                             </div>
-                                                            <div className="shrink-0 rounded-xl px-2.5 py-1 text-xs font-black text-white" style={{ backgroundColor: SLOT_COLORS[group.slot % SLOT_COLORS.length] }}>
-                                                                {course.enrollment}
+                                                            <div className="shrink-0 flex flex-col items-end gap-2">
+                                                                <div className="rounded-xl px-2.5 py-1 text-xs font-black text-white" style={{ backgroundColor: SLOT_COLORS[group.slot % SLOT_COLORS.length] }} title="Enrolled Students">
+                                                                    {course.enrollment}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>

@@ -59,15 +59,16 @@ namespace scheduling {
         return true;
     }
 
-    bool TimetableScheduler::schedule_backtracking_m_coloring(models::SchedulingData& data, const ConflictGraph& graph, int max_slots) {
+    bool TimetableScheduler::schedule_backtracking_m_coloring(models::SchedulingData& data, const ConflictGraph& graph, int max_slots, int& used_slots) {
         std::vector<std::string> courses;
         for (const auto& pair : data.courses) {
             courses.push_back(pair.first);
         }
 
         std::unordered_map<std::string, int> color_assignment;
+        used_slots = 0;
         
-        if (backtracking_helper(courses, 0, color_assignment, max_slots, graph)) {
+        if (backtracking_helper(courses, 0, color_assignment, max_slots, graph, -1, used_slots)) {
             // Apply assignments
             for (auto& pair : data.courses) {
                 pair.second.assigned_slot = color_assignment[pair.first];
@@ -83,9 +84,12 @@ namespace scheduling {
         int current_idx,
         std::unordered_map<std::string, int>& color_assignment,
         int max_slots,
-        const ConflictGraph& graph
+        const ConflictGraph& graph,
+        int current_max_color,
+        int& used_slots
     ) {
         if (current_idx == courses.size()) {
+            used_slots = current_max_color + 1;
             return true; // All courses colored successfully
         }
 
@@ -94,8 +98,9 @@ namespace scheduling {
         for (int c = 0; c < max_slots; c++) {
             if (is_safe(current_course, c, color_assignment, graph)) {
                 color_assignment[current_course] = c;
+                int next_max_color = std::max(current_max_color, c);
 
-                if (backtracking_helper(courses, current_idx + 1, color_assignment, max_slots, graph)) {
+                if (backtracking_helper(courses, current_idx + 1, color_assignment, max_slots, graph, next_max_color, used_slots)) {
                     return true;
                 }
 
