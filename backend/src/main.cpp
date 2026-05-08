@@ -120,9 +120,9 @@ int main() {
 
         if (global_data.rooms.empty()) {
             global_data.rooms = {
-                {"LT-1", 150}, {"LT-2", 150}, {"LT-3", 150},
-                {"G1", 80}, {"G2", 80}, {"G3", 80},
-                {"FF1", 60}, {"FF2", 60}, {"FF3", 60}
+                {"LT1", 500}, {"LT2", 500}, {"LT3", 500},
+                {"FF1", 150}, {"FF2", 150}, {"FF3", 150}, {"FF4", 150},
+                {"FF5", 150}, {"FF6", 150}, {"FF7", 150}, {"FF8", 150}
             };
         }
         scheduling::RoomAllocator::allocate_rooms_greedy(global_data);
