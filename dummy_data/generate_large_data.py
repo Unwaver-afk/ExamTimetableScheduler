@@ -1,15 +1,13 @@
 import csv
 import random
 
-NUM_STUDENTS = 3000
-NUM_COURSES = 150
-MAX_COURSES_PER_STUDENT = 6
+NUM_STUDENTS = 1000
+NUM_COURSES = 25
+NUM_CONFLICTS = 20
 
-# Departments and topics
-departments = ["CS", "MATH", "PHY", "EE", "MECH", "CIVIL", "BIO", "CHEM", "ECO", "HUM"]
-topics = ["Foundations of", "Advanced", "Applied", "Principles of", "Introduction to", "Special Topics in", "Seminar on"]
+departments = ["CS", "MATH", "PHY", "EE", "MECH"]
+topics = ["Foundations of", "Advanced", "Applied"]
 
-# Generate Courses
 courses = []
 for i in range(1, NUM_COURSES + 1):
     dept = random.choice(departments)
@@ -18,39 +16,42 @@ for i in range(1, NUM_COURSES + 1):
     course_id = f"{dept}{level}"
     course_name = f"{topic} {dept}"
     
-    # Ensure unique Course ID
     while any(c[0] == course_id for c in courses):
         level = random.randint(1, 4) * 100 + random.randint(1, 99)
         course_id = f"{dept}{level}"
         
     courses.append((course_id, course_name))
 
+course_ids = [c[0] for c in courses]
+
 with open("courses_large.csv", "w", newline='') as f:
     writer = csv.writer(f)
     writer.writerow(["CourseID", "CourseName"])
     writer.writerows(courses)
 
-# Generate Enrollments
+# To guarantee exactly 20 conflicts (edges in the graph),
+# we pre-select 20 distinct pairs of courses.
+possible_pairs = []
+for i in range(len(course_ids)):
+    for j in range(i + 1, len(course_ids)):
+        possible_pairs.append((course_ids[i], course_ids[j]))
+
+conflict_pairs = random.sample(possible_pairs, min(NUM_CONFLICTS, len(possible_pairs)))
+
 enrollments = []
-course_ids = [c[0] for c in courses]
-
-# Create some common core courses that many students take (high conflict chance)
-core_courses = random.sample(course_ids, 10)
-
 for i in range(1, NUM_STUDENTS + 1):
     student_id = f"STU{100000 + i}"
-    num_enrolled = random.randint(3, MAX_COURSES_PER_STUDENT)
     
-    student_courses = set()
-    # 50% chance a student takes a highly popular core course
-    if random.random() > 0.5:
-        student_courses.add(random.choice(core_courses))
-        
-    while len(student_courses) < num_enrolled:
-        student_courses.add(random.choice(course_ids))
-        
-    for course_id in student_courses:
-        enrollments.append((student_id, course_id))
+    # Give the student either 1 isolated course (no conflict generated)
+    # OR exactly 2 courses from our pre-approved conflict pairs list
+    if random.random() < 0.4 and len(conflict_pairs) > 0:
+        pair = random.choice(conflict_pairs)
+        enrollments.append((student_id, pair[0]))
+        enrollments.append((student_id, pair[1]))
+    else:
+        # Just 1 random course
+        c = random.choice(course_ids)
+        enrollments.append((student_id, c))
 
 with open("enrollments_large.csv", "w", newline='') as f:
     writer = csv.writer(f)
@@ -59,3 +60,4 @@ with open("enrollments_large.csv", "w", newline='') as f:
 
 print(f"Successfully generated courses_large.csv ({len(courses)} courses)")
 print(f"Successfully generated enrollments_large.csv ({len(enrollments)} enrollments for {NUM_STUDENTS} students)")
+print(f"Maximum guaranteed graph conflicts (edges): {NUM_CONFLICTS}")
